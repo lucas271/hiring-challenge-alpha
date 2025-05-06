@@ -6,11 +6,15 @@ export function setupSocket() {
 
   socket.addEventListener('message', (event) => {
     const data = event.data;
-
+    console.log(event)
     try {
-      addMessage('AI', data);
+      const jsonData = JSON.parse(data);
+      if (jsonData.type === 'error') {
+        addMessage('System', jsonData.content, true);
+      } else {
+        addMessage('AI', jsonData.content);
+      }
     } catch (e) {
-      console.log(e)
       addMessage('System', "Unable to read server response.", true);
     }
   });
@@ -35,7 +39,7 @@ const handleSend = (socket) => {
   const sendMessage = () => {
     const message = messageInput.value.trim();
     if (message) {
-      socket.send(message);
+      socket.send(JSON.stringify({ content: message, type: 'user'}));
       addMessage('You', message);
       messageInput.value = '';
     }

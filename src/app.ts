@@ -1,5 +1,5 @@
 import Fastify, { FastifyInstance, FastifyRequest } from "fastify"
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import fastifyWebsocket from "@fastify/websocket";
 import fastifyView from "@fastify/view";
@@ -36,28 +36,28 @@ export async function buildApp(): Promise<FastifyInstance> {
             }
         });
         
-        fastify.get('/', async (request, reply) => {
+        fastify.get('/', async (_request, reply) => {
             return reply.view('index', { title: 'Homepage', name: 'Guest' });
         });
 
         fastify.get('/talkAi/:lang', { websocket: true }, async (connection, req: FastifyRequest<{Params?: {lang: string}}>) => {            
-
-
             const initialLang = req.params?.lang || "en";
 
-            const initialMessages = [
-                new SystemMessage(`Translate the system text to the language: ${initialLang}. If the target language is unrecognized, translate to English instead. Do not mention the unrecognized language name in your response. When falling back to English, simply provide the English text followed by "(Language could not be identified. Using English as the default language.)". For valid language requests, provide only the translation without explanations.`),
+            const greetingMessages = [
+                new SystemMessage(`Translate the system text to the language: ${initialLang}. If the target text is a unrecognized language or not a language, translate to English instead. Do not mention the unrecognized text in your response. When falling back to English, simply provide the English text followed by "(Language could not be identified. Using English as the default language.)". For valid language requests, provide only the translation without explanations.`),
                 new HumanMessage("Hello, I'm your AI assistant. How can I help you today?"),
             ];
 
-            const initialMessage = (await model.invoke(initialMessages)).content
-            const conversationHistory = [new SystemMessage(String(initialMessage))];
+            const greetingMessage = String((await model.invoke(greetingMessages)).content)
 
-            connection.send(initialMessage);
+            const conversationHistory: (HumanMessage | SystemMessage | AIMessage)[] = [new SystemMessage(greetingMessage)];
 
+            connection.send(JSON.stringify({type: "AI", content: greetingMessage}));
+            //message is expected to be a stringfied json object with content and type params.
             connection.on('message', async (message) => {
                 try {
-                    const userMessage = new HumanMessage(String(message));
+                    const parsedMessage: {content: string, type: string} = JSON.parse(String(message));
+                    const userMessage = new HumanMessage(parsedMessage.content);
                     conversationHistory.push(userMessage);
 
                     const response = await model.invoke(conversationHistory);
@@ -65,7 +65,10 @@ export async function buildApp(): Promise<FastifyInstance> {
                     conversationHistory.push(userMessage);
                     conversationHistory.push(response);
 
-                    connection.send(response.content);
+                    connection.send(JSON.stringify({
+                        type: response.getType(),
+                        content: response.content
+                    }));
                 } catch (error) {
                     connection.send(JSON.stringify({
                         type: 'error',
