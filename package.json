@@ -27,9 +27,12 @@
     "@langchain/google-genai": "^0.2.5",
     "@langchain/langgraph": "^0.2.68",
     "@types/ejs": "^3.1.5",
+    "@types/sqlite3": "^5.1.0",
     "dotenv": "^16.5.0",
     "ejs": "^3.1.10",
     "fastify": "^5.3.2",
-    "langchain": "^0.3.24"
+    "langchain": "^0.3.24",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   }
 }
