@@ -4,7 +4,9 @@
   "description": "Welcome to the Multi-Source AI Agent Challenge! In this project, you'll build an intelligent agent using Node.js and modern LLM frameworks that can answer questions by leveraging multiple data sources including SQLite databases, document files, and web content via bash commands.",
   "main": "./src/server.ts",
   "scripts": {
-    "build": "tsc",
+    "copy-views": "xcopy /E /I /Y src\\views dist\\views",
+    "copy-public": "xcopy /E /I /Y src\\public dist\\public",
+    "build": "tsc && npm run copy-views && npm run copy-public",
     "dev": "nodemon --exec ts-node src/server.ts",
     "start": "node dist/server.js"
   },
