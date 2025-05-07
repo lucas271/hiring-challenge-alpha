@@ -10,6 +10,7 @@
 
 ## ARCHITECTURE
 The app uses the MVC pattern, but with a services folder instead of a model's one.
+EJS for views and websockets for client-server communication.
 
 ## How to use
 
