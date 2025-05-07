@@ -13,6 +13,12 @@ body {
   box-sizing: border-box;
 }
 
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+}
+
 .chat-container {
   flex: 1;
   display: flex;
@@ -89,4 +95,90 @@ body {
 
 .chat-input button:hover {
   background-color: #27ae60;
+}
+
+.approval {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  width: fit-content;
+  background: black;
+}
+
+.approve-button,
+.reject-button {
+  padding: 5px 10px;
+  cursor: pointer;
+  color: white;
+  border: none;
+}
+
+.approve-button {
+  background-color: #4CAF50;
+}
+
+.reject-button {
+  background-color: #f44336;
+}
+
+.approve-button.processed,
+.reject-button.processed {
+  opacity: 0.7;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.spanText {
+  color: white;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.spanCommmand {
+  color: white;
+  background-color: rgb(113 113 113);
+  padding: 7px;
+  margin-bottom: 15px;
+  border-radius: 15px;
+  font-style: italic;
+  display: block;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  padding: 12px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner.small {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.buttonsDiv {
+  display: flex;
+  height: 32px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.buttonsDiv button {
+  height: 100%;
 }
