@@ -10,6 +10,7 @@
 
 ## ARCHITECTURE
 The app uses the MVC pattern, but with a services folder instead of a model's one.
+EJS for views and websockets for client-server communication.
 
 ## How to use
 
@@ -24,13 +25,13 @@ example view Route: http://[::1]:3000/api/v1/
 example prompt: "change to portuguese"
 
 2. The AI agent is able to read any txt file inside data/documents
-example prompt: "search in the documents about economy books"
+example prompt: "I wanna know about adam smith"
 
 3. The AI agent is able to execute queries in data/sqlite
-example prompt: "i wanna know about music, get musics from the database"
+example prompt: "I want a list of 10 musics of any gender"
 
 4. The AI agent is able to execute curl commands to search the web
-example prompt: "get data from wikipedia about civil war"
+example prompt: "I wanna know the current price of bitcoin"
 
 ## NECESSARY IMPROVEMENTS
 1. Using @fastify/websocket is not scalable, since you cannot use it to emit events or create rooms,

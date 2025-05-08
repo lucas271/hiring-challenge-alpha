@@ -13,27 +13,37 @@ export const generateAiResponse = async (
   conversationHistory: (HumanMessage | SystemMessage | AIMessageChunk)[],
   socket: WebSocket
 ): Promise<AIMessageChunk> => {
+
   const curlTool = new DynamicStructuredTool({
     name: "curl_web_content",
     description: `
-      Use this tool to fetch live data from websites or APIs based on the user's request.
-
-      You must infer the correct URL from the user's message. The user will NOT give a URL.
-      Only use URLs you are confident exist, such as public REST APIs or simple site endpoints.
-
-      If you're unsure of the exact API format, either skip calling the tool or use a general URL like a homepage or documentation page.
-
-      Do not fabricate API paths that don't exist.
-    `,
+      Use this tool **only** for fetching real-time or dynamic public data (e.g., charts, news, or APIs).
+    
+      This tool is intended for:
+      - Live music charts or today's new releases
+      - Breaking news, sports, or time-sensitive data
+      - Real-time pricing, weather, or events
+    
+      Do not use this tool for static or generic queries like "list some musics" or "get a list of songs".
+    `.trim(),
     schema: z.object({
-      url: z.string().describe("The direct URL you constructed from the user's query"),
+      query: z.string().describe("The query that is most likely to find the user's desired information."),
     }),
-    func: async ({ url }) => {
+    func: async ({ query }) => {
       try {
-        const data = await getCurlInfo(url, socket);
-        return `Fetched data from ${url}:\n${data}`;
+        const result = await getCurlInfo(query, socket);
+        const finalAnswer = await model.invoke([
+          new SystemMessage(`
+            based on the result of the used tool: ${result}
+            answer the user's question.
+          `.trim()),
+          new HumanMessage(message),
+        ]);
+
+        
+        return finalAnswer;
       } catch (e) {
-        return `Failed to fetch data from ${url}: ${e}`;
+        return `Failed to fetch data from with query: ${query}`;
       }
     },
   });
@@ -45,7 +55,7 @@ export const generateAiResponse = async (
       
       The user might speak in Portuguese or another language, but your search query must always be in ENGLISH, as the documents are written in English.
       
-      Use this tool only if the user asks about something that could reasonably exist in local/internal documents (e.g., policies, processes, reports, notes).
+      Use this tool only if the user asks about something that could reasonably exist in local/internal documents.
       
       Documents filenames:
       ${JSON.stringify(getDocumentFileNames())}
@@ -58,13 +68,20 @@ export const generateAiResponse = async (
     func: async ({ query }) => {
       try {
         const documents = await getAllDocuments();
-        const matches = documents.filter(doc =>
+
+        const result = documents.filter(doc =>
           doc.toLowerCase().includes(query.toLowerCase())
         );
-        if (matches.length === 0) {
-          return `No relevant results found in the documents for: "${query}"`;
-        }
-        return `Found the following relevant document content:\n${matches.join("\n---\n")}`;
+
+        const finalAnswer = await model.invoke([
+          new SystemMessage(`
+            based on the result of the used tool: ${result}
+            answer the user's question.
+          `.trim()),
+          new HumanMessage(message),
+        ]);
+
+        return finalAnswer;
       } catch (e) {
         return `Documents query error: ${e}`;
       }
@@ -75,18 +92,24 @@ export const generateAiResponse = async (
   const sqliteTool = new DynamicStructuredTool({
     name: "query_sqlite_database",
     description: `
-      Executes SQL queries against SQLite databases to retrieve structured data.
-      
-      Use this tool when the user is asking for specific data that would likely be stored in a database,
-      such as records, statistics, or structured information.
-      
-      You need to specify both the database name and a valid SQL query.
+      Executes SQL SELECT queries against local offline SQLite databases.
 
-      Available databases and their schemas:
-      ${JSON.stringify(await buildDatabaseSchemas())}
-      
-      Only use SELECT queries for safety reasons.
-      Make sure to use the correct table names and column names from the schema information.
+      This tool must be used when:
+      - The question is about music, genres, playlists, albums, charts, or artist data.
+      - The user is listing, filtering, or counting structured information (e.g., songs, books, logs, records).
+      - The information exists in a database schema (see below).
+
+      This tool should be preferred over the online tool (curl_web_content) for music-related queries, unless the question clearly asks for real-time or trending data.
+
+      Use this for queries like:
+      - "List 10 musics of any genre"
+      - "What are the top 5 rock songs?"
+      - "Get me a list of jazz albums"
+
+      Do not use this if the question is about today's trends, news, or latest releases.
+
+      Available database schemas:
+      ${await buildDatabaseSchemas()}
     `,
     schema: z.object({
       database: z.string().describe("The name of the database file to query (must end with .db)"),
@@ -98,8 +121,16 @@ export const generateAiResponse = async (
           return "For security reasons, only SELECT queries are allowed.";
         }
         
-        const results = await executeQuery(database, query);
-        return JSON.stringify(results);
+        const result = await executeQuery(database, query);
+        const finalAnswer = await model.invoke([
+          new SystemMessage(`
+            based on the result of the used tool: ${result}
+            answer the user's question.
+          `.trim()),
+          new HumanMessage(message),
+        ]);
+
+        return finalAnswer
       } catch (e) {
         return `Database query error: ${e}`;
       }
@@ -107,14 +138,29 @@ export const generateAiResponse = async (
   });
 
   const systemPrompt = new SystemMessage(`
-    chat history: ${JSON.stringify(conversationHistory)}
+      chat history: ${JSON.stringify(conversationHistory)}
+      
+      user's message: ${message}
+      
+      You are an intelligent assistant integrated with tools to fetch live data, search documents, and query databases.
+      
+      **Before evaluating which tool to use, always convert the user's message to english.
+      **You must always attempt to answer directly based on available context, even if the user's question is vague or general. Do not ask for clarification. Do not ask for more information.**
+      
 
-    You are an intelligent assistant. 
-    You can answer questions, fetch real-time data using tools, search documents, and query databases.
-    Think step-by-step to determine whether you need to use a tool.
-    If you do, call the appropriate tool and wait for the result.
-    Then, respond with a clear and helpful answer to the user.
-  `.trim());
+      Offline tools (document search, SQLite) must be used whenever the question can reasonably be answered without live, real-time data.
+
+      Only use the online curl tool if the user's question clearly involves current events, real-time updates, or trending data.
+
+      You must always attempt to answer directly based on available context, even if the user's question is vague or general. Do not ask for clarification. Do not ask for more information.    
+      - If the query can use a tool,  call the tool directly.
+      - You must never reply with "could you please clarify" or similar phrases.
+      - Respond in a helpful, data-focused manner, even when assumptions are needed.
+      
+      ONLY if it seens very likely that no tool can answer the user's question, you should give a general answer based on your internal knowledge
+
+      REMINDER: YOU DO NOT HAVE ACCESS TO DOCUMENTS, CURL COMMANDS, OR DATABASES AT THIS MOMENT.
+    `.trim());
 
   const tools = [curlTool, documentSearch, sqliteTool];
   const llmWithTools = model.bindTools(tools);
@@ -136,15 +182,8 @@ export const generateAiResponse = async (
       }
 
       const result = await tool.func(args);
-      const finalAnswer = await model.invoke([
-        new SystemMessage(`
-          based on the result of the used tool: ${result}
-          answer the user's question.
-        `.trim()),
-        new HumanMessage(message),
-      ]);
 
-      return new AIMessageChunk({ content: finalAnswer.content });
+      return new AIMessageChunk(result);
     }
   }
 

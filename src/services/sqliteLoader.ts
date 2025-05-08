@@ -5,7 +5,7 @@ import { open, Database } from 'sqlite';
 
 const dbDirectory = process.env.SQLITE_DB_PATH || path.join(__dirname, '../../data/sqlite');
 
-export async function getAllDatabases(): Promise<string[]> {
+export function getAllDatabases(): string[] {
   try {
     const files = fs.readdirSync(dbDirectory);
     return files.filter(file => file.endsWith('.db'));
@@ -42,15 +42,16 @@ export async function getTableInfo(dbName: string): Promise<{tableName: string, 
   }
 }
 
-export async function buildDatabaseSchemas(): Promise<{[dbName: string]: {tableName: string, columns: string[]}[]}> {
-  const databases = await getAllDatabases();
+
+export async function buildDatabaseSchemas(): Promise<string> {
+  const databases = getAllDatabases();
   const schemas: {[dbName: string]: {tableName: string, columns: string[]}[]} = {};
   
   for (const dbName of databases) {
     schemas[dbName] = await getTableInfo(dbName);
   }
   
-  return schemas;
+  return JSON.stringify(schemas);
 }
 
 export async function openDatabase(dbName: string): Promise<Database | null> {
