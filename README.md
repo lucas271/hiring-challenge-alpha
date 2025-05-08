@@ -15,23 +15,23 @@ EJS for views and websockets for client-server communication.
 ## How to use
 
 1. Wait for the server to start, then open the browser at the view route http://[::1]:{PORT:DEFAULT=3000}/api/v1/
-example view Route: http://[::1]:3000/api/v1/
+example view Route: ```http://[::1]:3000/api/v1/```
 
 2. Start chatting with the AI agent.
 
 ## Functionalities
 
 1. The AI agent can answer questions in multiple languages
-example prompt: "change to portuguese"
+example prompt: ```change to portuguese```
 
 2. The AI agent is able to read any txt file inside data/documents
-example prompt: "I wanna know about adam smith"
+example prompt: ```I wanna know about adam smith```
 
 3. The AI agent is able to execute queries in data/sqlite
-example prompt: "I want a list of 10 musics of any gender"
+example prompt: ```I want a list of 10 musics of any gender```
 
 4. The AI agent is able to execute curl commands to search the web
-example prompt: "I wanna know the current price of bitcoin"
+example prompt: ```I wanna know the current price of bitcoin```
 
 ## NECESSARY IMPROVEMENTS
 1. Using @fastify/websocket is not scalable, since you cannot use it to emit events or create rooms,
