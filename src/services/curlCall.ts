@@ -1,9 +1,9 @@
 import { exec } from 'child_process';
 import { WebSocket } from 'ws';
 
-export function getCurlInfo(url: string, socket: WebSocket): Promise<string> {
+export function getCurlInfo(query: string, socket: WebSocket): Promise<string> {
   return new Promise((resolve, reject) => {
-    const command = generateCommand(url);
+    const command = generateCommand(query);
     if (!command) return reject("Invalid command");
     socket.send(JSON.stringify({
       type: "approvalRequest",
@@ -42,12 +42,12 @@ export function getCurlInfo(url: string, socket: WebSocket): Promise<string> {
   });
 }
 
-function generateCommand(url: string): string {
+function generateCommand(query: string): string {
   try {
-    new URL(url);
-    return `curl ${url}`;
+    const treatedQuery = encodeURIComponent(query);
+    return `curl -s https://lite.duckduckgo.com/lite/?q=${treatedQuery}`;
   } catch (error) {
-    console.error(`Invalid URL: ${url}`, error);
+    console.error(`Invalid query: ${query}`, error);
     return '';
   }
 }
